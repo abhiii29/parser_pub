@@ -7,13 +7,13 @@ from datetime import datetime
 
 def main():
     # Set up database
-#     db = setup()
-#     db.row_factory = lambda cursor, row: row[0]
-#     c = db.cursor()
+     db = setup()
+     db.row_factory = lambda cursor, row: row[0]
+     c = db.cursor()
 
 
     # define folder path with .msg files
-    folder_path = r"C:/Users/gahane/Documents/Newfolder/Intexterion/"
+    folder_path = r"C:/Users/gahane/Documents/Newfolder/Noris/"
     
     os.chdir(folder_path)
     #alternative to import .msg files to the script
@@ -48,8 +48,10 @@ def main():
     regex_ticket_type = re.compile(r"Ticket type\s*:\s*([a-zA-Z]+.*[a-zA-Z]+)")
     regex_tickettype = re.compile(r"Type\s*:\s*([a-zA-Z]+.*[a-zA-Z]+)")
     regex_ticket_class = re.compile(r"Ticket class\s*:\s*([a-zA-Z]+)")
-    regex_ticket_anno = re.compile(r"Announcement\s*:\s*([a-zA-Z]+.*\([^)]*\))")
+    
     regex_ticket_status = re.compile(r"Ticketstatus\s*:\s*([a-zA-Z]+)")
+    regex_ticket_status1 = re.compile(r"FW: Announcement\s*([a-zA-Z]+\s)")
+    
     regex_impacttoservice = re.compile(r"Impact to Service\s*:\s([a-zA-Z]+( [a-zA-Z]+)+).*([a-zA-Z]+([a-zA-Z]+)+)")
     regex_message = re.compile(r"Message\s*: (?<=>)([\w\s]+)(?=<\/)")
     regex_summary = re.compile(r"Summary\s*: +([a-zA-Z]+( [a-zA-Z]+)+)")
@@ -156,15 +158,21 @@ def main():
         
         if ticket_class:
             ticket_class = ticket_class.group(1) 
+        
         else:
             ticket_class = None
             
             
         # for status or announcment
         ticket_status = re.search(regex_ticket_status, msg_message)
+        ticket_status1 = re.search(regex_ticket_status1, msg_subject)
         
         if ticket_status:
             ticket_status = ticket_status.group(1)  
+        
+        elif ticket_status1:
+            ticket_status = ticket_status1.group(1)
+            
         else:
             ticket_status = None
             
@@ -209,49 +217,51 @@ def main():
         else:
             message = None
                     
-        #print(ticket_no, msg_recieved, ticket_start_date, ticket_end_date, ticket_type, ticket_class, ticket_status, impacttoservice, summary, site_location, message)
-        print(ticket_no, ticket_start_date)
+         sql_insert(db, ticket_no, msg_recieved, ticket_start_date, ticket_end_date, ticket_type, ticket_class, ticket_status, impacttoservice, summary, site_location, message)
+#         print(ticket_no, ticket_type, ticket_class, ticket_status, impacttoservice, summary, site_location, message)
 
-# def sql_insert(db, ticket_no, msg_recieved, ticket_start_date, ticket_end_date, ticket_type, ticket_class, ticket_status, impacttoservice, summary, site_location, message):
+#         print(ticket_no, msg_subject)
 
-#     ticketnos = db.execute('SELECT ticket_no FROM PARSER_DB2').fetchall()
-#     # print(ticketnos)
-#     if ticket_no in ticketnos:
-#         # print('Ticket already exists and updated')
-#         db.execute("UPDATE PARSER_DB2 SET ticket_status = ? WHERE ticket_no = ?", (ticket_status, ticket_no))
-#         db.commit()
-#     else:
-#         db.execute("INSERT INTO PARSER_DB2 (ticket_no, msg_recieved, ticket_start_date, ticket_end_date, ticket_type, ticket_class, ticket_status, impacttoservice, summary, site_location, message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", 
-#         (ticket_no, msg_recieved, ticket_start_date, ticket_end_date, ticket_type, ticket_class, ticket_status, impacttoservice, summary, site_location, message))
-#         db.commit()
+ def sql_insert(db, ticket_no, msg_recieved, ticket_start_date, ticket_end_date, ticket_type, ticket_class, ticket_status, impacttoservice, summary, site_location, message):
 
-#     '''insert or replace into Book (ID, Name, TypeID, Level, Seen) values
-# ((select ID from Book where Name = "SearchName"), "SearchName", ...);'''
+     ticketnos = db.execute('SELECT ticket_no FROM PARSER_DB2').fetchall()
+     # print(ticketnos)
+     if ticket_no in ticketnos:
+         # print('Ticket already exists and updated')
+         db.execute("UPDATE PARSER_DB2 SET ticket_status = ? WHERE ticket_no = ?", (ticket_status, ticket_no))
+         db.commit()
+     else:
+         db.execute("INSERT INTO PARSER_DB2 (ticket_no, msg_recieved, ticket_start_date, ticket_end_date, ticket_type, ticket_class, ticket_status, impacttoservice, summary, site_location, message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", 
+         (ticket_no, msg_recieved, ticket_start_date, ticket_end_date, ticket_type, ticket_class, ticket_status, impacttoservice, summary, site_location, message))
+         db.commit()
+
+     '''insert or replace into Book (ID, Name, TypeID, Level, Seen) values
+ ((select ID from Book where Name = "SearchName"), "SearchName", ...);'''
     
-# def setup():
-#     # Create & connect to database, add file path below
-#     db = sqlite3.connect("C:/Users/gahane/Documents/Newfolder/Intexterion/email_parser.db")
+ def setup():
+     # Create & connect to database, add file path below
+     db = sqlite3.connect("C:/Users/gahane/Documents/Newfolder/Intexterion/email_parser.db")
 
-#     # Create empty tables
-#     db.execute("""
-#     CREATE TABLE IF NOT EXISTS "PARSER_DB2" (
-#     ID INTEGER PRIMARY KEY AUTOINCREMENT,
-#     "ticket_no" VARCHAR(60),
-#     "msg_recieved" TEXT,
-#     "ticket_start_date" DATE,
-#     "ticket_end_date" DATE,
-#     "ticket_type" TEXT,
-#     "ticket_class" TEXT,
-#     "ticket_status" TEXT,
-#     "impacttoservice" TEXT,
-#     "summary" TEXT,
-#     "site_location" TEXT, 
-#     "message" TEXT)
-#      """)
+     # Create empty tables
+     db.execute("""
+     CREATE TABLE IF NOT EXISTS "PARSER_DB2" (
+     ID INTEGER PRIMARY KEY AUTOINCREMENT,
+     "ticket_no" VARCHAR(60),
+     "msg_recieved" TEXT,
+     "ticket_start_date" DATE,
+     "ticket_end_date" DATE,
+     "ticket_type" TEXT,
+     "ticket_class" TEXT,
+     "ticket_status" TEXT,
+     "impacttoservice" TEXT,
+     "summary" TEXT,
+     "site_location" TEXT, 
+     "message" TEXT)
+      """)
     
-#     db.commit()
+     db.commit()
 
-#     return db
+     return db
     
 main()
  
